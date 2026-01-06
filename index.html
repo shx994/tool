@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <!-- Fluid viewport + iOS safe-area friendly -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>One rpm — One Rep Max Calculator</title>
+  <meta name="description" content="Fast and accurate One Rep Max calculator with multiple formulas and percent-table.">
+  <style>
+    :root{
+      --bg:#0f1220; --card:#14182a; --muted:#8b93a7; --text:#e8ecf5;
+      --brand:#6ea8ff; --brand-2:#8bffbd; --accent:#ffd166; --danger:#ff6b6b;
+      --ring:rgba(110,168,255,.35); --maxw:1200px; --radius:14px; --hdrH:64px;
+      --gap:24px; /* scales down on small screens */
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
+      color:var(--text);
+      background: radial-gradient(1200px 600px at 20% -10%, #1a2040 0%, #0f1220 60%) fixed, var(--bg);
+      line-height:1.5;
+      padding-left: env(safe-area-inset-left);
+      padding-right: env(safe-area-inset-right);
+    }
+    a{color:var(--brand); text-decoration:none}
+    a:hover{text-decoration:underline}
+
+    /* Header */
+    header{
+      position:sticky; top:0; z-index:50; height:var(--hdrH);
+      background:rgba(10,12,24,.7); backdrop-filter:blur(10px);
+      border-bottom:1px solid rgba(255,255,255,.06);
+    }
+    .nav{
+      max-width:var(--maxw); margin:0 auto; padding:10px 16px;
+      display:flex; align-items:center; justify-content:space-between; gap:12px; height:100%;
+    }
+    .brand{display:flex; align-items:center; gap:10px; font-weight:800; letter-spacing:.2px}
+    .brand span{font-size:clamp(1rem, .6vw + .8rem, 1.15rem)}
+    .logo{width:32px;height:32px;border-radius:8px;
+      background:conic-gradient(from 220deg,var(--brand),var(--brand-2),var(--accent),var(--brand));
+      box-shadow:0 0 0 3px rgba(255,255,255,.05), 0 10px 30px rgba(110,168,255,.25);}
+    nav ul{display:flex; gap:18px; list-style:none; margin:0; padding:0}
+    nav a{color:var(--text); opacity:.9} nav a:hover{opacity:1}
+    .cta{
+      padding:10px 14px; border-radius:10px;
+      background:linear-gradient(90deg,var(--brand),var(--brand-2));
+      color:#08101f; font-weight:700; border:none; cursor:pointer;
+      box-shadow:0 6px 24px rgba(110,168,255,.35);
+    }
+
+    /* Mobile nav simplification */
+    @media (max-width:560px){
+      nav ul{gap:10px}
+      nav li:nth-child(2), nav li:nth-child(3){display:none} /* keep it minimal on tiny phones */
+      .cta{padding:10px 12px}
+    }
+
+    /* Hero (centered, fluid type) */
+    .hero{
+      max-width:900px; margin:28px auto 8px; padding:0 16px 8px; text-align:center;
+    }
+    .hero h1{font-size:clamp(1.6rem, 4.5vw, 3rem); margin:.2rem 0 .5rem}
+    .hero p{color:var(--muted); margin:0 auto; max-width:720px; font-size:clamp(.95rem, 1.2vw, 1.05rem)}
+
+    /* Layout with side banners (hidden on smaller screens) */
+    .shell{
+      --sideW: 1fr;
+      max-width:var(--maxw); margin:0 auto; padding:16px;
+      display:grid; grid-template-columns: var(--sideW) min(760px, 100%) var(--sideW); gap:var(--gap);
+    }
+    aside.banner{position:relative}
+    .banner-card{
+      position:sticky; top:calc(var(--hdrH) + 12px);
+      height:calc(100vh - var(--hdrH) - 24px);
+      display:flex; flex-direction:column; gap:12px;
+      background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+      border:1px solid rgba(255,255,255,.08); border-radius:var(--radius); padding:14px;
+      box-shadow:0 20px 50px rgba(0,0,0,.35);
+      max-width:260px; margin:0 auto; width:100%;
+    }
+    .banner-tag{font-size:.75rem; color:#0e1726; background:var(--accent);
+      align-self:flex-start; padding:6px 10px; border-radius:999px; font-weight:800;}
+    .banner-body{color:var(--muted); font-size:.95rem}
+    .banner-img{flex:1; border-radius:12px; border:1px dashed rgba(255,255,255,.1);
+      background:repeating-linear-gradient(45deg, rgba(255,255,255,.05) 0 10px, transparent 10px 20px);}
+
+    /* Tool card */
+    .card{
+      background: radial-gradient(400px 200px at 80% -10%, rgba(110,168,255,.18), transparent 40%), var(--card);
+      border:1px solid rgba(255,255,255,.08); border-radius:var(--radius);
+      padding:18px; box-shadow:0 25px 60px rgba(0,0,0,.45);
+    }
+    .card h2{margin:.2rem 0 1rem; text-align:center; font-size:clamp(1.2rem, 2.6vw, 1.6rem)}
+
+    .grid{
+      display:grid; gap:12px; grid-template-columns: repeat(3, 1fr);
+    }
+    .input{display:flex; flex-direction:column; gap:6px;}
+    label{font-size:.9rem; color:var(--muted)}
+    input[type="number"]{
+      width:100%; padding:14px 12px; border-radius:10px; border:1px solid rgba(255,255,255,.12);
+      background:#0e1326; color:var(--text); outline:none; font-size:1rem;
+    }
+    input[type="number"]:focus{border-color:var(--brand); box-shadow:0 0 0 6px var(--ring)}
+    .unit-toggle{display:flex; background:#0e1326; border:1px solid rgba(255,255,255,.12); border-radius:10px; overflow:hidden;}
+    .unit-toggle button{
+      flex:1; padding:14px; background:transparent; color:var(--muted); border:none; cursor:pointer; font-weight:700; font-size:1rem;
+    }
+    .unit-toggle button.active{color:#0b1428; background:linear-gradient(90deg,var(--brand),var(--brand-2));}
+
+    .btn{
+      padding:14px 16px; border-radius:10px; border:1px solid rgba(255,255,255,.12);
+      background:#0e1326; color:var(--text); cursor:pointer; font-weight:700; font-size:1rem;
+    }
+    .btn.primary{background:linear-gradient(90deg,var(--brand),var(--brand-2)); color:#091322; border:none}
+    .help{font-size:.9rem; color:var(--muted)} .warn{color:var(--danger)}
+
+    .actions{display:flex; gap:10px; margin-top:12px; justify-content:center; flex-wrap:wrap}
+    .results{margin-top:16px; display:grid; grid-template-columns: repeat(2, 1fr); gap:12px;}
+    .pill{background:#0e1326; border:1px solid rgba(255,255,255,.12); padding:12px; border-radius:12px;}
+    .pill h3{margin:0 0 8px; font-size:1rem}
+    .big{font-size:clamp(1.3rem, 3.5vw, 1.6rem); font-weight:900}
+    table{width:100%; border-collapse:collapse; font-size:.95rem; margin-top:6px}
+    th,td{padding:10px 8px; border-bottom:1px solid rgba(255,255,255,.08); text-align:left}
+    th{color:var(--muted); font-weight:700}
+
+    .post{
+      margin-top:18px; background:linear-gradient(180deg, rgba(255,255,255,.04), transparent);
+      border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:14px;
+      color:var(--muted); font-size:.98rem; text-align:center;
+    }
+
+    /* Footer */
+    footer{margin-top:36px; border-top:1px solid rgba(255,255,255,.08); background:rgba(10,12,24,.6);}
+    .foot{
+      max-width:var(--maxw); margin:0 auto; padding:24px 16px;
+      display:grid; gap:18px; grid-template-columns: 1.3fr repeat(3, 1fr);
+    }
+    .foot h4{margin:.2rem 0 .6rem}
+    .subtle{color:var(--muted); font-size:.95rem}
+    .foot a{display:block; margin:8px 0; opacity:.9} .foot a:hover{opacity:1}
+    .copyright{
+      max-width:var(--maxw); margin:0 auto; padding:12px 16px; color:var(--muted);
+      border-top:1px solid rgba(255,255,255,.06); display:flex; justify-content:space-between; align-items:center; font-size:.9rem;
+      gap:10px; flex-wrap:wrap;
+    }
+
+    /* ====== RESPONSIVE BREAKPOINTS ====== */
+
+    /* Large tablets / small laptops */
+    @media (max-width: 1024px){
+      .shell{grid-template-columns: 1fr; gap:16px}
+      aside.banner{display:none} /* hide side banners to free space */
+      .grid{grid-template-columns: repeat(3, 1fr)}
+      .results{grid-template-columns: 1fr 1fr}
+    }
+
+    /* Tablets (768–900) */
+    @media (max-width: 900px){
+      .grid{grid-template-columns: 1fr 1fr}
+      .results{grid-template-columns: 1fr}
+      .hero{margin:24px auto 6px}
+      :root{--gap:18px}
+    }
+
+    /* Phones (<= 560) */
+    @media (max-width: 560px){
+      .card{padding:14px}
+      .grid{grid-template-columns: 1fr}
+      .actions{flex-direction:column}
+      .btn, .unit-toggle button, input[type="number"]{padding:12px}
+      .hero{padding:0 14px}
+      .foot{grid-template-columns: 1fr 1fr}
+    }
+
+    /* Small phones (<= 380) */
+    @media (max-width: 380px){
+      .brand span{display:none} /* keep logo only */
+      .copyright{justify-content:center; text-align:center}
+      .foot{grid-template-columns:1fr}
+      .hero h1{font-size:clamp(1.4rem, 6vw, 2rem)}
+    }
+
+    /* Respect users who prefer less motion */
+    @media (prefers-reduced-motion: reduce){
+      *{scroll-behavior:auto}
+      .cta, .logo{box-shadow:none}
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header>
+    <div class="nav">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <span>One rpm</span>
+      </div>
+      <nav aria-label="Primary">
+        <ul>
+          <li><a href="#calculator">Calculator</a></li>
+          <li><a href="#how">How it works</a></li>
+          <li><a href="#contact">Contact</a></li>
+        </ul>
+      </nav>
+      <button class="cta" onclick="document.getElementById('calculator').scrollIntoView({behavior:'smooth'})">Try now</button>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero" id="hero">
+    <h1>Estimate your One-Rep Max in seconds</h1>
+    <p>Enter your best set. See 1RM from top formulas, plus a ready-to-use percent table for training.</p>
+  </section>
+
+  <!-- Body -->
+  <section class="shell" id="calculator">
+    <!-- Left banner (hidden on small screens) -->
+    <aside class="banner" aria-label="Coach tips banner">
+      <div class="banner-card">
+        <span class="banner-tag">Coach Tip</span>
+        <div class="banner-body">Warm up well. Keep form tight. 3–8 reps gives the best estimate.</div>
+        <div class="banner-img" role="img" aria-label="Strength training abstract banner"></div>
+      </div>
+    </aside>
+
+    <!-- Tool -->
+    <main class="card" role="main" aria-labelledby="calc-title">
+      <h2 id="calc-title">One Rep Max Calculator</h2>
+
+      <div class="grid" role="group" aria-label="Input">
+        <div class="input">
+          <label for="weight">Weight lifted</label>
+          <input id="weight" type="number" min="1" step="0.5" placeholder="e.g. 100" inputmode="decimal">
+        </div>
+        <div class="input">
+          <label for="reps">Reps performed</label>
+          <input id="reps" type="number" min="1" max="12" step="1" placeholder="e.g. 5" inputmode="numeric">
+        </div>
+        <div class="input">
+          <label>Unit</label>
+          <div class="unit-toggle" role="tablist" aria-label="Unit toggle">
+            <button id="u-kg" class="active" role="tab" aria-selected="true">kg</button>
+            <button id="u-lb" role="tab" aria-selected="false">lb</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button class="btn primary" id="calcBtn">Calculate</button>
+        <button class="btn" id="resetBtn">Reset</button>
+      </div>
+      <p class="help" id="note" style="text-align:center">Tip: estimates are most reliable between 3 and 8 reps.</p>
+
+      <section class="results" aria-live="polite" aria-atomic="true" id="results" hidden>
+        <div class="pill">
+          <h3>Average 1RM</h3>
+          <div class="big" id="avgOut">—</div>
+          <div class="help" id="unitOut">kg</div>
+        </div>
+        <div class="pill">
+          <h3>By Formula</h3>
+          <table>
+            <tbody id="formulasOut"></tbody>
+          </table>
+        </div>
+        <div class="pill" style="grid-column: 1 / -1;">
+          <h3>% of 1RM Table</h3>
+          <table>
+            <thead>
+              <tr><th>%</th><th>Weight</th><th>Est. reps</th></tr>
+            </thead>
+            <tbody id="pctOut"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <div class="post" id="postText" hidden>
+        Use these numbers for today’s sets. Start around 70–80% for 3–5 sets. If form breaks, lower the load.
+      </div>
+    </main>
+
+    <!-- Right banner (hidden on small screens) -->
+    <aside class="banner" aria-label="Training banner">
+      <div class="banner-card">
+        <span class="banner-tag">Train Smart</span>
+        <div class="banner-body">Pick weights from the table. Stay 1–2 reps shy of failure for most sets.</div>
+        <div class="banner-img" role="img" aria-label="Geometric fitness banner"></div>
+      </div>
+    </aside>
+  </section>
+
+  <!-- How it works -->
+  <section class="hero" id="how" style="margin-top:8px">
+    <h2>How it works</h2>
+    <p>We use Epley, Brzycki, Lombardi, Mayhew, and O’Conner. The average gives a balanced estimate. Very high reps are less accurate.</p>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <div class="foot">
+      <div>
+        <div class="brand" style="margin-bottom:8px">
+          <div class="logo" aria-hidden="true"></div>
+          <span>One rpm</span>
+        </div>
+        <p class="subtle">A clean tool to estimate your one-rep max and plan training loads fast.</p>
+      </div>
+      <div>
+        <h4>Product</h4>
+        <a href="#calculator">Calculator</a>
+        <a href="#how">How it works</a>
+        <a href="#contact">Contact</a>
+      </div>
+      <div>
+        <h4>Training</h4>
+        <a href="#">Strength zones</a>
+        <a href="#">Warm-up guide</a>
+        <a href="#">Safety tips</a>
+      </div>
+      <div>
+        <h4>Legal</h4>
+        <a href="#">Terms</a>
+        <a href="#">Privacy</a>
+        <a href="#">Disclaimer</a>
+      </div>
+    </div>
+    <div class="copyright">
+      <span>© <span id="yy"></span> One rpm. All rights reserved.</span>
+      <span class="subtle">Built for clarity, speed, and accuracy.</span>
+    </div>
+  </footer>
+
+  <script>
+    const $ = (id)=>document.getElementById(id);
+    const round2 = (n)=>Math.round(n*100)/100;
+    const KG_PER_LB = 0.45359237;
+
+    let unit = 'kg';
+    const kgBtn = $('u-kg'), lbBtn = $('u-lb');
+
+    function setUnit(u){
+      unit = u;
+      kgBtn.classList.toggle('active', u==='kg');
+      kgBtn.setAttribute('aria-selected', u==='kg');
+      lbBtn.classList.toggle('active', u==='lb');
+      lbBtn.setAttribute('aria-selected', u==='lb');
+      $('unitOut').textContent = u;
+    }
+    kgBtn.addEventListener('click', ()=> setUnit('kg'));
+    lbBtn.addEventListener('click', ()=> setUnit('lb'));
+
+    const toKg = (w,u)=> u==='lb' ? w*KG_PER_LB : w;
+    const fromKg = (w,u)=> u==='lb' ? w/KG_PER_LB : w;
+
+    function calcFormulas(weightKg, reps){
+      const w = weightKg, r = reps;
+      return {
+        Epley: w*(1 + r/30),
+        Brzycki: w*(36/(37 - r)),
+        Lombardi: w*Math.pow(r, 0.10),
+        Mayhew: (100*w)/(52.2 + 41.9*Math.exp(-0.055*r)),
+        "O’Conner": w*(1 + 0.025*r)
+      };
+    }
+    function buildPercents(oneRmKg, outUnit){
+      return [95,90,85,80,75,70,65,60,55,50].map(p=>{
+        const w = fromKg(oneRmKg*(p/100), outUnit);
+        const est = p>=90 ? '1–3' : p>=85 ? '3–5' : p>=80 ? '5–6' :
+                    p>=75 ? '6–8' : p>=70 ? '8–10' : '10–12';
+        return { percent:p, weight: round2(w), estReps: est };
+      });
+    }
+    function validate(w, r){
+      const errs = [];
+      if(!w || w<=0) errs.push('Enter a valid weight.');
+      if(!r || r<1 || r>12) errs.push('Reps must be between 1 and 12.');
+      if(w && ((unit==='kg' && w>500) || (unit==='lb' && w>1100))) errs.push('Weight looks too high.');
+      $('note').innerHTML = (r>10)
+        ? '<span class="warn">Note:</span> estimates get less accurate above 10 reps.'
+        : 'Tip: estimates are most reliable between 3 and 8 reps.';
+      return errs;
+    }
+
+    $('calcBtn').addEventListener('click', ()=>{
+      const w = parseFloat($('weight').value);
+      const r = parseInt($('reps').value,10);
+      const errs = validate(w,r);
+      if(errs.length){ alert(errs.join('\n')); return; }
+
+      const weightKg = toKg(w, unit);
+      const formulas = calcFormulas(weightKg, r);
+      if(r===1){ Object.keys(formulas).forEach(k=> formulas[k]=weightKg); }
+      const values = Object.values(formulas);
+      const avgKg = values.reduce((a,b)=>a+b,0)/values.length;
+
+      const fmt = (x)=> round2(fromKg(x, unit)) + ' ' + unit;
+      $('avgOut').textContent = round2(fromKg(avgKg, unit)) + ' ' + unit;
+
+      const tbody = $('formulasOut'); tbody.innerHTML = '';
+      for(const [name,val] of Object.entries(formulas)){
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${name}</td><td>${fmt(val)}</td>`;
+        tbody.appendChild(tr);
+      }
+
+      const pctBody = $('pctOut'); pctBody.innerHTML = '';
+      for(const row of buildPercents(avgKg, unit)){
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${row.percent}%</td><td>${row.weight} ${unit}</td><td>${row.estReps}</td>`;
+        pctBody.appendChild(tr);
+      }
+
+      $('results').hidden = false;
+      $('postText').hidden = false;
+    });
+
+    $('resetBtn').addEventListener('click', ()=>{
+      $('weight').value=''; $('reps').value='';
+      $('results').hidden = true; $('postText').hidden = true;
+      $('note').textContent = 'Tip: estimates are most reliable between 3 and 8 reps.';
+    });
+
+    $('yy').textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
